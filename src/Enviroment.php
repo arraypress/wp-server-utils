@@ -222,7 +222,7 @@ class Environment {
 	 */
 	public static function is_cloudways(): bool {
 		return isset( $_SERVER['cw_allowed_ip'] ) ||
-		       strpos( gethostname() ?: '', 'cloudways' ) !== false;
+		       str_contains( gethostname() ?: '', 'cloudways' );
 	}
 
 	/**
@@ -242,7 +242,7 @@ class Environment {
 	 */
 	public static function is_flywheel(): bool {
 		return defined( 'FLYWHEEL_CONFIG_DIR' ) ||
-		       strpos( $_SERVER['SERVER_SOFTWARE'] ?? '', 'Flywheel' ) !== false;
+		       str_contains( $_SERVER['SERVER_SOFTWARE'] ?? '', 'Flywheel' );
 	}
 
 	/**
