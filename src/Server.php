@@ -45,38 +45,12 @@ class Server {
 	}
 
 	/**
-	 * Get server type and software information.
-	 *
-	 * @return array An array containing 'type' and 'software' keys.
-	 */
-	public static function get_info(): array {
-		$software = self::get_software();
-		$type     = self::detect_type();
-
-		return [
-			'type'     => $type,
-			'software' => $software,
-		];
-	}
-
-	/**
-	 * Get the server hostname.
-	 *
-	 * @return string|null The server hostname or null if not available.
-	 */
-	public static function get_hostname(): ?string {
-		$hostname = gethostname();
-
-		return $hostname !== false ? $hostname : null;
-	}
-
-	/**
 	 * Get the server's IP address.
 	 *
 	 * @return string The server's IP address.
 	 */
 	public static function get_ip(): string {
-		return $_SERVER['SERVER_ADDR'] ?? gethostbyname( self::get_hostname() ?? 'localhost' );
+		return $_SERVER['SERVER_ADDR'] ?? gethostbyname( gethostname() ?: 'localhost' );
 	}
 
 	/**
@@ -138,31 +112,6 @@ class Server {
 	 */
 	public static function is_cloudflare(): bool {
 		return isset( $_SERVER['HTTP_CF_RAY'] ) || isset( $_SERVER['HTTP_CF_CONNECTING_IP'] );
-	}
-
-	/**
-	 * Detect the server type.
-	 *
-	 * @return string The detected server type.
-	 */
-	private static function detect_type(): string {
-		if ( self::is_apache() ) {
-			return 'Apache';
-		}
-
-		if ( self::is_nginx() ) {
-			return 'Nginx';
-		}
-
-		if ( self::is_litespeed() ) {
-			return 'LiteSpeed';
-		}
-
-		if ( self::is_iis() ) {
-			return 'IIS';
-		}
-
-		return 'Unknown';
 	}
 
 	// ========================================
@@ -227,12 +176,53 @@ class Server {
 	}
 
 	/**
-	 * Check if server supports brotli compression.
+	 * Check if server supports X-Sendfile for optimized file delivery.
 	 *
-	 * @return bool True if brotli is supported.
+	 * @return bool True if X-Sendfile is supported.
 	 */
-	public static function supports_brotli(): bool {
-		return function_exists( 'brotli_compress' );
+	public static function has_xsendfile(): bool {
+		// Apache mod_xsendfile
+		if ( self::is_apache() && function_exists( 'apache_get_modules' ) ) {
+			return in_array( 'mod_xsendfile', apache_get_modules(), true );
+		}
+
+		// LiteSpeed supports X-Sendfile natively
+		if ( self::is_litespeed() ) {
+			return true;
+		}
+
+		// Nginx requires manual configuration, check via filter
+		if ( self::is_nginx() ) {
+			return apply_filters( 'server_nginx_xsendfile', false );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get Apache modules if available.
+	 *
+	 * @return array|null Array of module names or null if not Apache/not available.
+	 */
+	public static function get_apache_modules(): ?array {
+		if ( ! self::is_apache() || ! function_exists( 'apache_get_modules' ) ) {
+			return null;
+		}
+
+		return apache_get_modules();
+	}
+
+	/**
+	 * Check if a specific Apache module is loaded.
+	 *
+	 * @param string $module Module name (e.g., 'mod_rewrite', 'mod_headers').
+	 *
+	 * @return bool True if module is loaded.
+	 */
+	public static function has_apache_module( string $module ): bool {
+		$modules = self::get_apache_modules();
+
+		return $modules !== null && in_array( $module, $modules, true );
 	}
 
 }

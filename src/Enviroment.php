@@ -2,8 +2,8 @@
 /**
  * Environment Utility Class
  *
- * Provides utility functions for detecting server environments and hosting platforms.
- * Focuses on environment type detection (localhost, staging, production) and hosting platform identification.
+ * Provides utility functions for detecting server environments.
+ * Focuses on environment type detection (localhost, staging, production).
  *
  * @package ArrayPress\ServerUtils
  * @since   1.0.0
@@ -107,9 +107,8 @@ class Environment {
 		$url              = get_site_url();
 		$staging_patterns = [
 			'/staging\.|\.staging/',
-			'/dev\.|\.dev/',
+			'/stage\.|\.stage/',
 			'/test\.|\.test/',
-			'/beta\.|\.beta/',
 			'/demo\.|\.demo/',
 		];
 
@@ -121,10 +120,9 @@ class Environment {
 
 		// Check environment variables
 		$env_indicators = [
-			'WP_ENV'        => [ 'staging', 'development' ],
-			'ENVIRONMENT'   => [ 'staging', 'development' ],
-			'APP_ENV'       => [ 'staging', 'development' ],
-			'WORDPRESS_ENV' => [ 'staging', 'development' ],
+			'WP_ENV'      => [ 'staging', 'stage' ],
+			'ENVIRONMENT' => [ 'staging', 'stage' ],
+			'APP_ENV'     => [ 'staging', 'stage' ],
 		];
 
 		foreach ( $env_indicators as $var => $values ) {
@@ -132,11 +130,6 @@ class Environment {
 			if ( $env_value && in_array( strtolower( $env_value ), $values, true ) ) {
 				return true;
 			}
-		}
-
-		// Check for staging constants
-		if ( defined( 'WP_STAGE' ) && WP_STAGE === 'staging' ) {
-			return true;
 		}
 
 		return false;
@@ -169,146 +162,6 @@ class Environment {
 	 */
 	public static function is_production(): bool {
 		return ! self::is_localhost() && ! self::is_staging() && ! self::is_development();
-	}
-
-	// ========================================
-	// Hosting Platform Detection
-	// ========================================
-
-	/**
-	 * Check if running on WordPress.com.
-	 *
-	 * @return bool True if WordPress.com hosting.
-	 */
-	public static function is_wordpress_com(): bool {
-		return defined( 'IS_WPCOM' ) && IS_WPCOM;
-	}
-
-	/**
-	 * Check if running on WP Engine.
-	 *
-	 * @return bool True if WP Engine hosting.
-	 */
-	public static function is_wp_engine(): bool {
-		return defined( 'WPE_APIKEY' ) ||
-		       class_exists( 'WpeCommon' ) ||
-		       isset( $_SERVER['IS_WPE'] );
-	}
-
-	/**
-	 * Check if running on Kinsta.
-	 *
-	 * @return bool True if Kinsta hosting.
-	 */
-	public static function is_kinsta(): bool {
-		return isset( $_SERVER['KINSTA_CACHE_ZONE'] ) ||
-		       defined( 'KINSTAMU_VERSION' );
-	}
-
-	/**
-	 * Check if running on SiteGround.
-	 *
-	 * @return bool True if SiteGround hosting.
-	 */
-	public static function is_siteground(): bool {
-		return isset( $_SERVER['SG_CACHEPRESS_SUPERCACHER'] ) ||
-		       function_exists( 'sg_cachepress_purge_cache' );
-	}
-
-	/**
-	 * Check if running on Cloudways.
-	 *
-	 * @return bool True if Cloudways hosting.
-	 */
-	public static function is_cloudways(): bool {
-		return isset( $_SERVER['cw_allowed_ip'] ) ||
-		       str_contains( gethostname() ?: '', 'cloudways' );
-	}
-
-	/**
-	 * Check if running on Pantheon.
-	 *
-	 * @return bool True if Pantheon hosting.
-	 */
-	public static function is_pantheon(): bool {
-		return isset( $_ENV['PANTHEON_ENVIRONMENT'] ) ||
-		       defined( 'PANTHEON_ENVIRONMENT' );
-	}
-
-	/**
-	 * Check if running on Flywheel.
-	 *
-	 * @return bool True if Flywheel hosting.
-	 */
-	public static function is_flywheel(): bool {
-		return defined( 'FLYWHEEL_CONFIG_DIR' ) ||
-		       str_contains( $_SERVER['SERVER_SOFTWARE'] ?? '', 'Flywheel' );
-	}
-
-	/**
-	 * Detect hosting platform.
-	 *
-	 * @return string|null The hosting platform name or null if unknown.
-	 */
-	public static function get_hosting_platform(): ?string {
-		$platforms = [
-			'WordPress.com' => 'is_wordpress_com',
-			'WP Engine'     => 'is_wp_engine',
-			'Kinsta'        => 'is_kinsta',
-			'SiteGround'    => 'is_siteground',
-			'Cloudways'     => 'is_cloudways',
-			'Pantheon'      => 'is_pantheon',
-			'Flywheel'      => 'is_flywheel',
-		];
-
-		foreach ( $platforms as $platform => $method ) {
-			if ( self::$method() ) {
-				return $platform;
-			}
-		}
-
-		return null;
-	}
-
-	// ========================================
-	// Container & Virtualization Detection
-	// ========================================
-
-	/**
-	 * Check if running in a Docker container.
-	 *
-	 * @return bool True if running in Docker.
-	 */
-	public static function is_docker(): bool {
-		return file_exists( '/.dockerenv' ) ||
-		       ( file_exists( '/proc/1/cgroup' ) &&
-		         strpos( file_get_contents( '/proc/1/cgroup' ), 'docker' ) !== false );
-	}
-
-	/**
-	 * Check if running in a virtual machine.
-	 *
-	 * @return bool True if running in a VM.
-	 */
-	public static function is_virtual_machine(): bool {
-		// Check for common VM indicators
-		$vm_indicators = [
-			'/proc/cpuinfo'   => [ 'hypervisor', 'vmware', 'virtualbox', 'kvm' ],
-			'/proc/scsi/scsi' => [ 'vmware', 'vbox' ],
-		];
-
-		foreach ( $vm_indicators as $file => $patterns ) {
-			if ( file_exists( $file ) ) {
-				$content = strtolower( file_get_contents( $file ) );
-				foreach ( $patterns as $pattern ) {
-					if ( strpos( $content, $pattern ) !== false ) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
 	}
 
 }

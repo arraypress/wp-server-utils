@@ -47,21 +47,12 @@ class PHP {
 	// ========================================
 
 	/**
-	 * Get PHP memory limit.
-	 *
-	 * @return string The memory limit.
-	 */
-	public static function get_memory_limit(): string {
-		return ini_get( 'memory_limit' );
-	}
-
-	/**
 	 * Get PHP memory limit in bytes.
 	 *
 	 * @return int The memory limit in bytes.
 	 */
 	public static function get_memory_limit_bytes(): int {
-		return wp_convert_hr_to_bytes( self::get_memory_limit() );
+		return wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 	}
 
 	/**
@@ -74,30 +65,12 @@ class PHP {
 	}
 
 	/**
-	 * Get upload maximum filesize.
-	 *
-	 * @return string The upload maximum filesize.
-	 */
-	public static function get_upload_max_filesize(): string {
-		return ini_get( 'upload_max_filesize' );
-	}
-
-	/**
 	 * Get upload maximum filesize in bytes.
 	 *
 	 * @return int The upload maximum filesize in bytes.
 	 */
 	public static function get_upload_max_filesize_bytes(): int {
-		return wp_convert_hr_to_bytes( self::get_upload_max_filesize() );
-	}
-
-	/**
-	 * Get post maximum size.
-	 *
-	 * @return string The post maximum size.
-	 */
-	public static function get_post_max_size(): string {
-		return ini_get( 'post_max_size' );
+		return wp_convert_hr_to_bytes( ini_get( 'upload_max_filesize' ) );
 	}
 
 	/**
@@ -106,7 +79,7 @@ class PHP {
 	 * @return int The post maximum size in bytes.
 	 */
 	public static function get_post_max_size_bytes(): int {
-		return wp_convert_hr_to_bytes( self::get_post_max_size() );
+		return wp_convert_hr_to_bytes( ini_get( 'post_max_size' ) );
 	}
 
 	/**
@@ -134,48 +107,6 @@ class PHP {
 	}
 
 	/**
-	 * Get all loaded PHP extensions.
-	 *
-	 * @param bool $zend_only Whether to get only Zend extensions.
-	 *
-	 * @return array Array of loaded extensions.
-	 */
-	public static function get_loaded_extensions( bool $zend_only = false ): array {
-		return $zend_only ? get_loaded_extensions( true ) : get_loaded_extensions();
-	}
-
-	/**
-	 * Get extension version.
-	 *
-	 * @param string $extension The extension name.
-	 *
-	 * @return string|null The extension version or null if not found.
-	 */
-	public static function get_extension_version( string $extension ): ?string {
-		if ( ! self::has_extension( $extension ) ) {
-			return null;
-		}
-
-		return phpversion( $extension ) ?: null;
-	}
-
-	/**
-	 * Check multiple extensions at once.
-	 *
-	 * @param array $extensions Array of extension names.
-	 *
-	 * @return array Array with extension names as keys and boolean values.
-	 */
-	public static function check_extensions( array $extensions ): array {
-		$results = [];
-		foreach ( $extensions as $extension ) {
-			$results[ $extension ] = self::has_extension( $extension );
-		}
-
-		return $results;
-	}
-
-	/**
 	 * Get missing extensions from a required list.
 	 *
 	 * @param array $required_extensions Array of required extension names.
@@ -200,65 +131,19 @@ class PHP {
 	/**
 	 * Check if a function is available and enabled.
 	 *
-	 * @param string $function       The function name.
-	 * @param bool   $check_disabled Whether to check if function is disabled.
+	 * @param string $function The function name.
 	 *
 	 * @return bool True if the function is available and enabled.
 	 */
-	public static function has_function( string $function, bool $check_disabled = true ): bool {
+	public static function has_function( string $function ): bool {
 		if ( ! function_exists( $function ) ) {
 			return false;
 		}
 
-		if ( $check_disabled ) {
-			return ! self::is_function_disabled( $function );
-		}
-
-		return true;
-	}
-
-	/**
-	 * Check if a function is disabled.
-	 *
-	 * @param string $function The function name.
-	 *
-	 * @return bool True if the function is disabled.
-	 */
-	public static function is_function_disabled( string $function ): bool {
 		$disabled_functions = explode( ',', ini_get( 'disable_functions' ) );
 		$disabled_functions = array_map( 'trim', $disabled_functions );
 
-		return in_array( $function, $disabled_functions, true );
-	}
-
-	/**
-	 * Get list of disabled functions.
-	 *
-	 * @return array Array of disabled function names.
-	 */
-	public static function get_disabled_functions(): array {
-		$disabled = ini_get( 'disable_functions' );
-		if ( empty( $disabled ) ) {
-			return [];
-		}
-
-		return array_map( 'trim', explode( ',', $disabled ) );
-	}
-
-	/**
-	 * Check multiple functions at once.
-	 *
-	 * @param array $functions Array of function names.
-	 *
-	 * @return array Array with function names as keys and boolean values.
-	 */
-	public static function check_functions( array $functions ): array {
-		$results = [];
-		foreach ( $functions as $function ) {
-			$results[ $function ] = self::has_function( $function );
-		}
-
-		return $results;
+		return ! in_array( $function, $disabled_functions, true );
 	}
 
 	// ========================================
@@ -266,23 +151,12 @@ class PHP {
 	// ========================================
 
 	/**
-	 * Check if a PHP directive is enabled.
-	 *
-	 * @param string $directive The directive name.
-	 *
-	 * @return bool True if the directive is enabled.
-	 */
-	public static function is_directive_enabled( string $directive ): bool {
-		return filter_var( ini_get( $directive ), FILTER_VALIDATE_BOOLEAN );
-	}
-
-	/**
 	 * Check if file uploads are enabled.
 	 *
 	 * @return bool True if file uploads are enabled.
 	 */
 	public static function are_uploads_enabled(): bool {
-		return self::is_directive_enabled( 'file_uploads' );
+		return filter_var( ini_get( 'file_uploads' ), FILTER_VALIDATE_BOOLEAN );
 	}
 
 	/**
@@ -291,34 +165,12 @@ class PHP {
 	 * @return bool True if allow_url_fopen is enabled.
 	 */
 	public static function is_url_fopen_enabled(): bool {
-		return self::is_directive_enabled( 'allow_url_fopen' );
+		return filter_var( ini_get( 'allow_url_fopen' ), FILTER_VALIDATE_BOOLEAN );
 	}
 
 	// ========================================
 	// Memory & Performance
 	// ========================================
-
-	/**
-	 * Get current memory usage.
-	 *
-	 * @param bool $real_usage Whether to get real memory usage.
-	 *
-	 * @return int Memory usage in bytes.
-	 */
-	public static function get_memory_usage( bool $real_usage = false ): int {
-		return memory_get_usage( $real_usage );
-	}
-
-	/**
-	 * Get peak memory usage.
-	 *
-	 * @param bool $real_usage Whether to get real memory usage.
-	 *
-	 * @return int Peak memory usage in bytes.
-	 */
-	public static function get_peak_memory_usage( bool $real_usage = false ): int {
-		return memory_get_peak_usage( $real_usage );
-	}
 
 	/**
 	 * Check if there's sufficient memory available.
@@ -338,7 +190,7 @@ class PHP {
 			return true;
 		}
 
-		$current_usage    = self::get_memory_usage( true );
+		$current_usage    = memory_get_usage( true );
 		$available_memory = $memory_limit - $current_usage;
 
 		return $available_memory >= $required_bytes;
