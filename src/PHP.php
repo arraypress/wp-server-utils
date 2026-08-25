@@ -195,5 +195,4 @@ class PHP {
 
 		return $available_memory >= $required_bytes;
 	}
-
 }

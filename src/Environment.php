@@ -163,5 +163,4 @@ class Environment {
 	public static function is_production(): bool {
 		return ! self::is_localhost() && ! self::is_staging() && ! self::is_development();
 	}
-
 }

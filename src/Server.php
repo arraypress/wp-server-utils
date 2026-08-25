@@ -50,7 +50,22 @@ class Server {
 	 * @return string The server's IP address.
 	 */
 	public static function get_ip(): string {
-		return $_SERVER['SERVER_ADDR'] ?? gethostbyname( gethostname() ?: 'localhost' );
+		if ( isset( $_SERVER['SERVER_ADDR'] ) ) {
+			// An IP address or nothing. The server sets this, not the client
+			// — but it reaches PHP through the same superglobal as everything
+			// the client does send, and treating it as trusted on that basis
+			// is how the exceptions start.
+			$address = filter_var(
+				sanitize_text_field( wp_unslash( $_SERVER['SERVER_ADDR'] ) ),
+				FILTER_VALIDATE_IP
+			);
+
+			if ( false !== $address ) {
+				return (string) $address;
+			}
+		}
+
+		return gethostbyname( gethostname() ?: 'localhost' );
 	}
 
 	/**
@@ -84,7 +99,7 @@ class Server {
 		$software = self::get_software();
 
 		return stripos( $software, 'nginx' ) !== false ||
-		       stripos( $software, 'flywheel' ) !== false;
+				stripos( $software, 'flywheel' ) !== false;
 	}
 
 	/**
@@ -224,5 +239,4 @@ class Server {
 
 		return $modules !== null && in_array( $module, $modules, true );
 	}
-
 }

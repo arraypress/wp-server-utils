@@ -109,5 +109,4 @@ class System {
 	public static function get_temp_dir(): string {
 		return sys_get_temp_dir();
 	}
-
 }
