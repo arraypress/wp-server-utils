@@ -88,8 +88,19 @@ class Environment {
 				return true;
 			}
 
-			// Check for IP addresses in private ranges
-			if ( filter_var( $domain, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
+			/*
+			 * A private or reserved IP -- 192.168.x, 10.x, 127.x.
+			 *
+			 * Both halves are needed. FILTER_VALIDATE_IP returns false for
+			 * anything that is not an IP at all, so testing only the flagged
+			 * call answered "localhost" for every ordinary domain name:
+			 * example.com is not an IP, so it failed the filter, so it was
+			 * read as local. Which made is_localhost() true everywhere,
+			 * get_type() always "localhost", and is_production() never true.
+			 */
+			$is_ip = false !== filter_var( $domain, FILTER_VALIDATE_IP );
+
+			if ( $is_ip && false === filter_var( $domain, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
 				return true;
 			}
 		}
@@ -103,19 +114,20 @@ class Environment {
 	 * @return bool True if staging environment.
 	 */
 	public static function is_staging(): bool {
-		// Check for staging indicators in URL
-		$url              = get_site_url();
-		$staging_patterns = [
-			'/staging\.|\.staging/',
-			'/stage\.|\.stage/',
-			'/test\.|\.test/',
-			'/demo\.|\.demo/',
-		];
+		/*
+		 * Matched against the host, and only at a label boundary.
+		 *
+		 * The patterns used to be run over the whole URL and to accept the
+		 * word anywhere in it, so `latest.example.com` was staging -- it
+		 * contains "test." -- and so was any path containing the word. A
+		 * production site being told it is staging is not a small mistake:
+		 * it is what decides whether a licence check, a payment gateway or
+		 * an analytics call runs in live mode.
+		 */
+		$host = (string) wp_parse_url( get_site_url(), PHP_URL_HOST );
 
-		foreach ( $staging_patterns as $pattern ) {
-			if ( preg_match( $pattern, $url ) ) {
-				return true;
-			}
+		if ( '' !== $host && preg_match( '/(^|\.)(staging|stage|test|demo)(\.|$)/i', $host ) ) {
+			return true;
 		}
 
 		// Check environment variables
